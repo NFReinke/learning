@@ -8,11 +8,12 @@ const fieldHeight = 708;
 // Pipes
 
 const pipeWidth = 60;    //px
-const pipeGap = 120;   //px  
+const pipeGap = 180;   //px  
 const pipeSpeed = 100;   //px/s   
 const pipeSpawnInterval = 2; // sekunden
+let topPipeHeight = 200;
 
-let pipes = [];       // in top und bottom pipes aufteilen   
+let pipes =[];       // in top und bottom pipes aufteilen   
 
 // bird
 
@@ -48,8 +49,11 @@ let DOM = {
   game: null,
   entities: null,
   ui: null, 
-  birdElement: null,   
+  birdElement: null,  
+  pipeElements: [], 
 };
+
+
 
 // -----------GAMECONTAINER---------
 // define div-structure
@@ -64,8 +68,8 @@ function createGameContainer() {
     const ui = document.createElement("div");
     ui.id = "ui";
 
-    game.append(entities, ui);
-    DOM.app.append(game);
+    game.append(entities);
+    DOM.app.append(game, ui);
 
     DOM.game = game;
     DOM.entities = entities;
@@ -85,7 +89,7 @@ function updateGameContainer() {}
 function convertInputToAction() {}
 
 // -----------BIRD---------
-// define Bird
+// define Bird and create bird div
 
 function createBird() {
     const birdElement = document.createElement("div");
@@ -95,22 +99,46 @@ function createBird() {
 
     DOM.birdElement = birdElement;
 }
-function updateBirdState() {}
-
-//create Bird div
-
 function renderBird() {
   if (!DOM.birdElement) return;
   DOM.birdElement.style.width  = bird.width + "px";
   DOM.birdElement.style.height = bird.height + "px";
   DOM.birdElement.style.transform = `translate(${bird.x - bird.width / 2}px, ${bird.y - bird.height / 2}px)`;
 }
+function updateBirdState() {}
+
+
+
 
 // -----------PIPES---------
 
-function spawnPipe() {}         
+function createPipe(topPipeHeight) {
+  const pipeElements = document.createElement("div");
+  pipeElements.className ="pipePair";
+  pipeElements.style.left = fieldWidth - pipeWidth + "px"; // pipe width entfernen, damit spawn ausserhalb vom feld
+  pipeElements.style.width = pipeWidth + "px";
+  pipeElements.style.height = fieldHeight + "px";
+ 
+  const topElement = document.createElement("div");
+  topElement.className = "pipeTop";
+  topElement.style.height = (topPipeHeight + "px");
+
+  const bottomElement = document.createElement("div");
+  bottomElement.className = "pipeBottom";
+  bottomElement.style.height = (fieldHeight - topPipeHeight - pipeGap + "px")
+  bottomElement.style.top = (topPipeHeight + pipeGap + "px")
+
+
+  
+
+  pipeElements.append(topElement, bottomElement);
+  DOM.entities.append(pipeElements);
+
+  pipes.push({x: fieldWidth - pipeWidth, width: pipeWidth, topPipeHeight, gapHeight: pipeGap});
+  DOM.pipeElements.push(pipeElements)
+}         
+function renderPipe() {}
 function updatePipeState() {}
-function renderPipes() {}
 
 // -----------UI---------
 
@@ -124,9 +152,10 @@ function checkGameState() {}
 function gameTick() {}
 function runGame() {
     createGameContainer();
-    createBird();
     renderGameContainer();
+    createBird();
     renderBird();
+    createPipe(topPipeHeight);
 };
 function restartGame() {}
 

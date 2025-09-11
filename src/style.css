@@ -10,7 +10,13 @@ html, body {
   background: #3aa7ff;     
   position: relative;   
   border-radius: 10px;
+  overflow: hidden;
   
+  
+}
+#entities {
+position: absolute;
+inset: 0;
 }
 #bird {
      
@@ -19,4 +25,19 @@ html, body {
   border: 2px solid #343635;
   border-radius: 14px;
 
+}
+.pipePair {
+  position: absolute;
+  top: "0";
+
+}
+.pipe{
+  position: absolute;
+  background: green;
+  width: 100%;
+}
+.pipeTop, .pipeBottom{
+  position: absolute;
+  width: 100%;
+  background: green;
 }
