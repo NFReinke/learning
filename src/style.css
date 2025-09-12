@@ -12,7 +12,6 @@ html, body {
   border-radius: 10px;
   overflow: hidden;
   
-  
 }
 #entities {
 position: absolute;
@@ -28,7 +27,7 @@ inset: 0;
 }
 .pipePair {
   position: absolute;
-  top: "0";
+  top: 0;
 
 }
 .pipe{

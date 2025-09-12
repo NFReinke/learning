@@ -7,25 +7,33 @@ const fieldHeight = 708;
 
 // Pipes
 
+const pipe = {
+  width: 60,
+  topHeight: 180,
+  gap: 180,
+  speed: 100,
+  SpawnInterval: 2,
+}
+/*
 const pipeWidth = 60;    //px
 const pipeGap = 180;   //px  
 const pipeSpeed = 100;   //px/s   
 const pipeSpawnInterval = 2; // sekunden
 let topPipeHeight = 200;
-
+*/
 let pipes =[];       // in top und bottom pipes aufteilen   
 
 // bird
 
 const birdBody = { width: 36, height: 30 };
-const birdStart = { x: fieldWidth / 6, y: fieldHeight / 2 };
+const birdStart = { x: fieldWidth / 6 , y: fieldHeight / 2  };
 
 const flap = -100; 
 let gravity = 100; //px/s^2
 
 //let velocity = 0, durch bird redundant ? wird vllt noch gebraucht
 
-let bird = {
+const bird = {
   x: birdStart.x,
   y: birdStart.y,
   width: birdBody.width,
@@ -44,7 +52,7 @@ let input = { flap: false, pause: false }; // ggf erhänzen oder entfernen, wird
 
 //structure & QOL
 
-let DOM = {
+const DOM = {
   app: document.getElementById("app"),
   game: null,
   entities: null,
@@ -99,44 +107,43 @@ function createBird() {
 
     DOM.birdElement = birdElement;
 }
-function renderBird() {
+function renderBird({x, y}) {
   if (!DOM.birdElement) return;
+
   DOM.birdElement.style.width  = bird.width + "px";
   DOM.birdElement.style.height = bird.height + "px";
-  DOM.birdElement.style.transform = `translate(${bird.x - bird.width / 2}px, ${bird.y - bird.height / 2}px)`;
+  DOM.birdElement.style.transform = `translate(${x- bird.width/2}px, ${y- bird.height/2}px)`;
 }
 function updateBirdState() {}
 
+function createPipe({topHeight, gap}) {
+  
+  if (!DOM.entities) return;
 
-
-
-// -----------PIPES---------
-
-function createPipe(topPipeHeight) {
   const pipeElements = document.createElement("div");
+
   pipeElements.className ="pipePair";
-  pipeElements.style.left = fieldWidth - pipeWidth + "px"; // pipe width entfernen, damit spawn ausserhalb vom feld
-  pipeElements.style.width = pipeWidth + "px";
+  pipeElements.style.left = (fieldWidth - pipe.width + "px"); // pipe.width entfernen, damit spawn ausserhalb vom feld
+  pipeElements.style.width = pipe.width + "px";
   pipeElements.style.height = fieldHeight + "px";
  
   const topElement = document.createElement("div");
   topElement.className = "pipeTop";
-  topElement.style.height = (topPipeHeight + "px");
+  topElement.style.height = (topHeight + "px");
 
   const bottomElement = document.createElement("div");
-  bottomElement.className = "pipeBottom";
-  bottomElement.style.height = (fieldHeight - topPipeHeight - pipeGap + "px")
-  bottomElement.style.top = (topPipeHeight + pipeGap + "px")
-
-
   
-
+  bottomElement.className = "pipeBottom";
+  bottomElement.style.height = (fieldHeight - topHeight - gap + "px")
+  bottomElement.style.top = (topHeight + gap + "px")
+ 
   pipeElements.append(topElement, bottomElement);
   DOM.entities.append(pipeElements);
 
-  pipes.push({x: fieldWidth - pipeWidth, width: pipeWidth, topPipeHeight, gapHeight: pipeGap});
+  pipes.push({x: fieldWidth - pipe.width, width: pipe.width, topHeight, gap});
   DOM.pipeElements.push(pipeElements)
-}         
+} 
+
 function renderPipe() {}
 function updatePipeState() {}
 
@@ -154,8 +161,8 @@ function runGame() {
     createGameContainer();
     renderGameContainer();
     createBird();
-    renderBird();
-    createPipe(topPipeHeight);
+    renderBird(bird);
+    createPipe(pipe);
 };
 function restartGame() {}
 
