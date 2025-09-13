@@ -1,42 +1,63 @@
-html, body {
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #0b1220; 
+:root{
+  --field-width: 400px;            
+  --field-height: 708px;           
+  --ground-height: 100px;       
+  --ceiling-margin: 40px;        
+  --ground-period: 3s;            
 }
 
-#game {          
-  background: #3aa7ff;     
-  position: relative;   
-  border-radius: 10px;
-  overflow: hidden;
+html, body{
+  height:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#0b1220;
+  margin:0;
+}
+
+#game{
+  position:relative;
+  width:var(--field-width);
+  height:var(--field-height);
+  background:#3aa7ff;
+  border-radius:10px;
+  overflow:hidden;
+}
+
+#entities{
+  position:absolute;
+  left:0;
+  width:100%;
   
+  top:var(--ceiling-margin);
+  height:calc(var(--field-height) - var(--ground-height) - var(--ceiling-margin));
+  overflow:hidden;
 }
-#entities {
-position: absolute;
-inset: 0;
-}
-#bird {
-     
-  background: #ffd166;    
-  position: absolute;
-  border: 2px solid #343635;
-  border-radius: 14px;
 
+.pipePair{ position:absolute; top:0; }
+.pipeTop,.pipeBottom{ position:absolute; width:100%; background:green; }
+#bird{
+  position:absolute;
+  background:#ffd166;
+  border:2px solid #343635;
+  border-radius:14px;
 }
-.pipePair {
-  position: absolute;
-  top: 0;
 
+
+#ground{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:var(--ground-height);
+  z-index:5;
+  background:repeating-linear-gradient(
+    to right,
+    #7c5a3b 0 20px,
+    #6c4e34 20px 40px);
+  background-position-x:0px;
+  animation:ground-scroll var(--ground-period) linear infinite;
 }
-.pipe{
-  position: absolute;
-  background: green;
-  width: 100%;
-}
-.pipeTop, .pipeBottom{
-  position: absolute;
-  width: 100%;
-  background: green;
+
+
+@keyframes ground-scroll{
+  to{ background-position-x: calc(-1 * var(--field-width)); }
 }

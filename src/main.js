@@ -4,23 +4,20 @@
 
 const fieldWidth = 400; //größe vom echten hintergrund, später bild einfügen
 const fieldHeight = 708;
-
+const SAFE_MARGIN = 30;
+const GROUND_HEIGHT = 100;   
+const CEILING_MARGIN = 40;
+const PLAYFIELD_HEIGHT = fieldHeight - GROUND_HEIGHT - CEILING_MARGIN;
 // Pipes
 
-const pipe = {
+const pipeConfig = {
   width: 60,
   topHeight: 180,
   gap: 180,
   speed: 100,
-  SpawnInterval: 2,
+  spawnInterval: 2.8,
 }
-/*
-const pipeWidth = 60;    //px
-const pipeGap = 180;   //px  
-const pipeSpeed = 100;   //px/s   
-const pipeSpawnInterval = 2; // sekunden
-let topPipeHeight = 200;
-*/
+
 let pipes =[];       // in top und bottom pipes aufteilen   
 
 // bird
@@ -50,34 +47,37 @@ let score = 0;
 let phase = "start";   // "start" "running" "paused" "gameover"
 let input = { flap: false, pause: false }; // ggf erhänzen oder entfernen, wird bei playermovement vorraussichtlich relevant
 
-const gameTime = {
+const initialGameTime = {
   lastFrameTime: performance.now(),
   deltaSec: 0,
   timeSinceLastSpawn: 0
 }
 
-const updateDeltaTime = (gameTime, currentTime) => {
-  const deltaTime = Math.min (0.017, (currentTime - gameTime.lastFrameTime) / 1000);
-  gameTime.lastFrameTime = currentTime;
-  gameTime.deltaSec = deltaTime;
-  return deltaTime
+const getDeltaTime = (prevGameTime, currentTime) => {
+  const deltaTime = Math.min (1 / 60, (currentTime - prevGameTime.lastFrameTime) / 1000);
+  return {
+    ...prevGameTime,
+    lastFrameTime: currentTime,
+    deltaSec: deltaTime,
+  };
 }
 
-//structure & QOL
 
-const DOM = {
-  app: document.getElementById("app"),
-  game: null,
-  entities: null,
-  ui: null, 
-  birdElement: null,  
-  pipeElements: [], 
-};
 
 
 
 // -----------GAMECONTAINER---------
 // define div-structure
+function applyCssVars() {
+  DOM.game.style.setProperty('--field-width',  `${fieldWidth}px`);
+  DOM.game.style.setProperty('--field-height', `${fieldHeight}px`);
+  DOM.game.style.setProperty('--ground-height', `${GROUND_HEIGHT}px`);
+  DOM.game.style.setProperty('--ceiling-margin', `${CEILING_MARGIN}px`);
+  const groundPeriod = fieldWidth / pipeConfig.speed; // Sekunden
+  DOM.game.style.setProperty('--ground-period', `${groundPeriod}s`);
+}
+
+
 
 function createGameContainer() {
     const game = document.createElement("div");
@@ -97,13 +97,20 @@ function createGameContainer() {
     DOM.ui = ui;
 }
 
+function createGround() {
+  const ground = document.createElement("div");
+  ground.id = "ground";
+  DOM.game.append(ground);    
+  DOM.ground = ground;
+}
 // create & format div-structure
 
-function renderGameContainer() {
-    if (!DOM.game) return;
+function renderGameContainer(){
+  if (!DOM.game) return;
   DOM.game.style.width  = fieldWidth + "px";
-  DOM.game.style.height = fieldHeight + "px";
+  DOM.game.style.height = fieldHeight + "px"; 
 }
+
 
 function updateGameContainer() {}    
 
@@ -129,37 +136,101 @@ function renderBird({x, y}) {
 }
 function updateBirdState() {}
 
-function createPipe({topHeight, gap}) {
-  
+
+function createPipe({ topHeight, gap }) {
   if (!DOM.entities) return;
 
   const pipeElements = document.createElement("div");
+  pipeElements.className = "pipePair";
+  pipeElements.style.width  = `${pipeConfig.width}px`;
+  pipeElements.style.height = `${PLAYFIELD_HEIGHT}px`;
 
-  pipeElements.className ="pipePair";
-  pipeElements.style.left = (fieldWidth - pipe.width + "px"); // pipe.width entfernen, damit spawn ausserhalb vom feld
-  pipeElements.style.width = pipe.width + "px";
-  pipeElements.style.height = fieldHeight + "px";
- 
   const topElement = document.createElement("div");
   topElement.className = "pipeTop";
-  topElement.style.height = (topHeight + "px");
+  topElement.style.height = `${topHeight}px`;
 
   const bottomElement = document.createElement("div");
-  
   bottomElement.className = "pipeBottom";
-  bottomElement.style.height = (fieldHeight - topHeight - gap + "px")
-  bottomElement.style.top = (topHeight + gap + "px")
- 
+  bottomElement.style.height = `${PLAYFIELD_HEIGHT - topHeight - gap}px`;
+  bottomElement.style.top    = `${topHeight + gap}px`;
+
   pipeElements.append(topElement, bottomElement);
   DOM.entities.append(pipeElements);
 
-  pipes.push({x: fieldWidth - pipe.width, width: pipe.width, topHeight, gap});
-  DOM.pipeElements.push(pipeElements)
-} 
+ 
+  pipes = [
+    ...pipes,
+    { x: fieldWidth, width: pipeConfig.width, topHeight, gap, element: pipeElements }
+  ];
+}
 
  
-function renderPipe() {}
-function updatePipeState() {}
+const renderPipes = () => {
+  pipes.forEach(pipePair => {
+    const element = pipePair.element;
+    element.style.transform = `translate3d(${pipePair.x}px, 0, 0)`;
+
+    const [topElement, bottomElement] = element.children;
+    const bottomTop = pipePair.topHeight + pipePair.gap;
+
+    topElement.style.height     = `${pipePair.topHeight}px`;
+    bottomElement.style.top     = `${bottomTop}px`;
+    bottomElement.style.height  = `${PLAYFIELD_HEIGHT - bottomTop}px`; 
+  });
+};
+
+
+const newPipeSpawnTimer = (prevGameTime, deltaTime) => {
+  const updatedTimeSinceSpawn = prevGameTime.timeSinceLastSpawn + deltaTime;
+
+  if (updatedTimeSinceSpawn >= pipeConfig.spawnInterval) {
+    return {
+      nextGameTime: {...prevGameTime, timeSinceLastSpawn: updatedTimeSinceSpawn - pipeConfig.spawnInterval },
+        spawnNow: true
+      };
+    }
+
+    return  {
+      nextGameTime: { ...prevGameTime, timeSinceLastSpawn: updatedTimeSinceSpawn },
+      spawnNow: false
+    };
+  };
+  
+
+
+const updatePipeMotion = (allPipePairs, deltaTime) => {
+  return allPipePairs.map(pipePair => ({
+    ...pipePair,
+    x: pipePair.x - pipeConfig.speed * deltaTime,
+  }));
+}
+
+const randomTopHeight = (gap, margin) => {
+  const minHeight = margin;
+  const maxHeight = PLAYFIELD_HEIGHT - gap - margin;
+  return Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
+};
+
+const removeInvisiblePipes = (allPipePairs) => {
+  return allPipePairs.filter(pipePair => {
+    const isOnScreen = pipePair.x + pipePair.width >= 0;
+    
+    if (!isOnScreen) {
+      pipePair.element.remove();
+    }
+    return isOnScreen;
+  });
+}
+//structure & QOL
+
+const DOM = {
+  app: document.getElementById("app"),
+  game: null,
+  entities: null,
+  ui: null, 
+  birdElement: null,  
+  pipeElements: [], 
+};
 
 // -----------UI---------
 
@@ -168,16 +239,51 @@ function updateUI() {}
 function renderUI() {}
 
 // ---------RULES----------
+const requestNextFrame = (prevGameTime) => {
+  requestAnimationFrame((nextGameTime) => gameLoop(nextGameTime, prevGameTime))
+}
+
+const gameLoop = (currentTime, prevGameTime) => {
+  const frameTime = getDeltaTime(prevGameTime, currentTime);
+  const deltaTime = frameTime.deltaSec;
+  
+  if (phase === "running") {
+    const {nextGameTime, spawnNow} = newPipeSpawnTimer(frameTime, deltaTime);
+
+    if (spawnNow ) {
+      const topHeight = randomTopHeight(pipeConfig.gap, SAFE_MARGIN);
+      createPipe({topHeight: topHeight, gap: pipeConfig.gap});
+    }
+   
+
+   pipes = updatePipeMotion(pipes, deltaTime);
+   pipes = removeInvisiblePipes(pipes);
+  renderPipes();
+
+  requestNextFrame(nextGameTime);
+  return
+}
+
+requestNextFrame(frameTime)
+}
+
 
 function checkGameState() {}
 function gameTick() {}
 function runGame() {
+    phase = "running";
     createGameContainer();
     renderGameContainer();
+    applyCssVars();
+    createGround();
+
     createBird();
     renderBird(bird);
-    createPipe(pipe);
+
+    createPipe(pipeConfig);
     
+    requestNextFrame(initialGameTime); 
+
 };
 function restartGame() {}
 
