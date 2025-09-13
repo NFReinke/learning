@@ -6,8 +6,8 @@ const fieldWidth = 400; //größe vom echten hintergrund, später bild einfügen
 const fieldHeight = 708;
 const SAFE_MARGIN = 30;
 const GROUND_HEIGHT = 100;   
-const CEILING_MARGIN = 40;
-const PLAYFIELD_HEIGHT = fieldHeight - GROUND_HEIGHT - CEILING_MARGIN;
+
+const PLAYFIELD_HEIGHT = fieldHeight - GROUND_HEIGHT;
 // Pipes
 
 const pipeConfig = {
@@ -72,7 +72,6 @@ function applyCssVars() {
   DOM.game.style.setProperty('--field-width',  `${fieldWidth}px`);
   DOM.game.style.setProperty('--field-height', `${fieldHeight}px`);
   DOM.game.style.setProperty('--ground-height', `${GROUND_HEIGHT}px`);
-  DOM.game.style.setProperty('--ceiling-margin', `${CEILING_MARGIN}px`);
   const groundPeriod = fieldWidth / pipeConfig.speed; // Sekunden
   DOM.game.style.setProperty('--ground-period', `${groundPeriod}s`);
 }
@@ -142,16 +141,18 @@ function createPipe({ topHeight, gap }) {
 
   const pipeElements = document.createElement("div");
   pipeElements.className = "pipePair";
+  
   pipeElements.style.width  = `${pipeConfig.width}px`;
   pipeElements.style.height = `${PLAYFIELD_HEIGHT}px`;
 
   const topElement = document.createElement("div");
   topElement.className = "pipeTop";
+
   topElement.style.height = `${topHeight}px`;
 
   const bottomElement = document.createElement("div");
   bottomElement.className = "pipeBottom";
-  bottomElement.style.height = `${PLAYFIELD_HEIGHT - topHeight - gap}px`;
+  bottomElement.style.height = `${PLAYFIELD_HEIGHT - (topHeight + gap)}px`;
   bottomElement.style.top    = `${topHeight + gap}px`;
 
   pipeElements.append(topElement, bottomElement);
@@ -166,6 +167,8 @@ function createPipe({ topHeight, gap }) {
 
  
 const renderPipes = () => {
+  
+
   pipes.forEach(pipePair => {
     const element = pipePair.element;
     element.style.transform = `translate3d(${pipePair.x}px, 0, 0)`;
@@ -180,18 +183,18 @@ const renderPipes = () => {
 };
 
 
-const newPipeSpawnTimer = (prevGameTime, deltaTime) => {
-  const updatedTimeSinceSpawn = prevGameTime.timeSinceLastSpawn + deltaTime;
+const newPipeSpawnTimer = (frameTime, deltaTime) => {
+  const updatedTimeSinceSpawn = frameTime.timeSinceLastSpawn + deltaTime;
 
   if (updatedTimeSinceSpawn >= pipeConfig.spawnInterval) {
     return {
-      nextGameTime: {...prevGameTime, timeSinceLastSpawn: updatedTimeSinceSpawn - pipeConfig.spawnInterval },
+      nextGameTime: {...frameTime, timeSinceLastSpawn: updatedTimeSinceSpawn - pipeConfig.spawnInterval },
         spawnNow: true
       };
     }
 
     return  {
-      nextGameTime: { ...prevGameTime, timeSinceLastSpawn: updatedTimeSinceSpawn },
+      nextGameTime: { ...frameTime, timeSinceLastSpawn: updatedTimeSinceSpawn },
       spawnNow: false
     };
   };
@@ -246,26 +249,27 @@ const requestNextFrame = (prevGameTime) => {
 const gameLoop = (currentTime, prevGameTime) => {
   const frameTime = getDeltaTime(prevGameTime, currentTime);
   const deltaTime = frameTime.deltaSec;
-  
+
+  let timeForNextFrame = frameTime;
+
   if (phase === "running") {
-    const {nextGameTime, spawnNow} = newPipeSpawnTimer(frameTime, deltaTime);
+    const { nextGameTime, spawnNow } = newPipeSpawnTimer(frameTime, deltaTime);
 
-    if (spawnNow ) {
+    if (spawnNow) {
       const topHeight = randomTopHeight(pipeConfig.gap, SAFE_MARGIN);
-      createPipe({topHeight: topHeight, gap: pipeConfig.gap});
+      createPipe({ topHeight, gap: pipeConfig.gap });
     }
-   
 
-   pipes = updatePipeMotion(pipes, deltaTime);
-   pipes = removeInvisiblePipes(pipes);
-  renderPipes();
+    pipes = updatePipeMotion(pipes, deltaTime);
+    pipes = removeInvisiblePipes(pipes);
+    renderPipes();
 
-  requestNextFrame(nextGameTime);
-  return
-}
+    timeForNextFrame = nextGameTime;
+  }
 
-requestNextFrame(frameTime)
-}
+  requestNextFrame(timeForNextFrame);
+};
+
 
 
 function checkGameState() {}

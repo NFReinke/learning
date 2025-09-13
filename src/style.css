@@ -2,7 +2,7 @@
   --field-width: 400px;            
   --field-height: 708px;           
   --ground-height: 100px;       
-  --ceiling-margin: 40px;        
+  --ceiling-margin: 0px;        
   --ground-period: 3s;            
 }
 
@@ -27,10 +27,9 @@ html, body{
 #entities{
   position:absolute;
   left:0;
-  width:100%;
-  
-  top:var(--ceiling-margin);
-  height:calc(var(--field-height) - var(--ground-height) - var(--ceiling-margin));
+  right: 0;
+  top: 0;  
+  height: var(--field-height);
   overflow:hidden;
 }
 
@@ -46,7 +45,9 @@ html, body{
 
 #ground{
   position:absolute;
-  left:0; right:0; bottom:0;
+  left:0; 
+  right:0; 
+  bottom:0;
   height:var(--ground-height);
   z-index:5;
   background:repeating-linear-gradient(
