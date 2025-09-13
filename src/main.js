@@ -12,10 +12,10 @@ const PLAYFIELD_HEIGHT = FIELD_HEIGHT - GROUND_HEIGHT;
 
 const pipeConfig = {
   width: 60,
-  topHeight: 180,
-  gap: 180,
-  speed: 100,
-  spawnInterval: 2.8,
+  topHeight: 210,
+  gap: 140,
+  speed: 180,
+  spawnInterval: 1.8,
 }
 
 let pipes =[];      
@@ -25,8 +25,8 @@ let pipes =[];
 const birdBody = { width: 36, height: 30 };
 const birdStart = { x: FIELD_WIDTH / 6 , y: FIELD_HEIGHT / 2  };
 
-const flap = -600; 
-const GRAVITY = 1600; //px/s^2
+const flap = -500; 
+const GRAVITY = 1800; //px/s^2
 
 //let velocity = 0, durch bird redundant ? wird vllt noch gebraucht
 
@@ -63,16 +63,16 @@ const getDeltaTime = (prevGameTime, currentTime) => {
 }
 
 
-
-
-
 // -----------GAMECONTAINER---------
+
+
 // define div-structure
+
 function applyCssVars() {
   DOM.game.style.setProperty('--field-width',  `${FIELD_WIDTH}px`);
   DOM.game.style.setProperty('--field-height', `${FIELD_HEIGHT}px`);
   DOM.game.style.setProperty('--ground-height', `${GROUND_HEIGHT}px`);
-  const groundPeriod = FIELD_WIDTH / pipeConfig.speed; // Sekunden
+  const groundPeriod = FIELD_WIDTH / pipeConfig.speed; 
   DOM.game.style.setProperty('--ground-period', `${groundPeriod}s`);
 }
 
@@ -162,8 +162,9 @@ const updateBirdState = ( {x, y, velocity}, deltaTime) => {
 
 
 
-function createPipe({ topHeight, gap }) {
+function createPipe({ topHeight, gap }, pipes) {
   if (!DOM.entities) return;
+  
 
   const pipeElements = document.createElement("div");
   pipeElements.className = "pipePair";
@@ -185,16 +186,16 @@ function createPipe({ topHeight, gap }) {
   DOM.entities.append(pipeElements);
 
  
-  pipes = [
+  const newPipes = [
     ...pipes,
     { x: FIELD_WIDTH, width: pipeConfig.width, topHeight, gap, element: pipeElements }
   ];
+  return newPipes;
 }
 
  
-const renderPipes = () => {
+const renderPipes = (pipes) => {
   
-
   pipes.forEach(pipePair => {
     const element = pipePair.element;
     element.style.transform = `translate3d(${pipePair.x}px, 0, 0)`;
@@ -215,15 +216,15 @@ const newPipeSpawnTimer = (frameTime, deltaTime) => {
   if (updatedTimeSinceSpawn >= pipeConfig.spawnInterval) {
     return {
       nextGameTime: {...frameTime, timeSinceLastSpawn: updatedTimeSinceSpawn - pipeConfig.spawnInterval },
-        spawnNow: true
+        shouldSpawnPipe: true
       };
     }
 
     return  {
       nextGameTime: { ...frameTime, timeSinceLastSpawn: updatedTimeSinceSpawn },
-      spawnNow: false
+      shouldSpawnPipe: false
     };
-  };
+  }
   
 
 
@@ -268,41 +269,50 @@ function updateUI() {}
 function renderUI() {}
 
 // ---------RULES----------
-const requestNextFrame = (prevGameTime, prevBird) => {
-  requestAnimationFrame((nextGameTime) => gameLoop(nextGameTime, prevGameTime, prevBird))
+const requestNextFrame = (state) => {
+  requestAnimationFrame((nextGameTime) => gameLoop(nextGameTime, state))
 }
 
-const gameLoop = (currentTime, prevGameTime, prevBird) => {
-  const frameTime = getDeltaTime(prevGameTime, currentTime);
+const gameLoop = (currentTime, state) => {
+  const {time, bird, pipes} = state
+
+  const frameTime = getDeltaTime(time, currentTime);
   const deltaTime = frameTime.deltaSec;
 
+
   let timeForNextFrame = frameTime;
-  let birdState = prevBird;
+  let birdState = bird;
+  let newPipes = pipes;  
 
   if (phase === "running") {
-    const { nextGameTime, spawnNow } = newPipeSpawnTimer(frameTime, deltaTime);
+    const spawnPipe = newPipeSpawnTimer(frameTime, deltaTime);
 
     birdState = convertInputToAction(birdState);
     birdState = updateBirdState(birdState, deltaTime);
 
     renderBird(birdState);
 
-    if (spawnNow) {
+    if (spawnPipe.shouldSpawnPipe) {
       const topHeight = randomTopHeight(pipeConfig.gap, SAFE_MARGIN);
-      createPipe({ topHeight, gap: pipeConfig.gap });
+      newPipes = createPipe({ topHeight, gap: pipeConfig.gap }, newPipes);
     }
 
-    pipes = updatePipeMotion(pipes, deltaTime);
-    pipes = removeInvisiblePipes(pipes);
-    renderPipes();
-
+    newPipes = updatePipeMotion(newPipes, deltaTime);
+    newPipes = removeInvisiblePipes(newPipes);
+    renderPipes(newPipes);
     
-    timeForNextFrame = nextGameTime;
-
+    timeForNextFrame = spawnPipe.nextGameTime;
     
   }
+  const newState = {
+    time: timeForNextFrame,
+    bird: birdState,
+    pipes: newPipes
+  }
+  
+  requestNextFrame(newState);
 
-  requestNextFrame(timeForNextFrame, birdState);
+ 
 };
 
 
@@ -311,6 +321,8 @@ function checkGameState() {}
 function gameTick() {}
 function runGame() {
     phase = "running";
+    
+
     createGameContainer();
     setupInput();
     renderGameContainer();
@@ -320,14 +332,15 @@ function runGame() {
     createBird();
     renderBird(bird);
     
-
-    createPipe(pipeConfig);
+    const initialState = {
+    time: { ...initialGameTime, timeSinceLastSpawn: pipeConfig.spawnInterval }, 
+    bird,
+    pipes: []
+  };
     
-    requestNextFrame(initialGameTime, bird); 
-
+    requestNextFrame(initialState); 
+    
 };
 function restartGame() {}
 
 runGame();
-
-
