@@ -50,6 +50,19 @@ let score = 0;
 let phase = "start";   // "start" "running" "paused" "gameover"
 let input = { flap: false, pause: false }; // ggf erhänzen oder entfernen, wird bei playermovement vorraussichtlich relevant
 
+const gameTime = {
+  lastFrameTime: performance.now(),
+  deltaSec: 0,
+  timeSinceLastSpawn: 0
+}
+
+const updateDeltaTime = (gameTime, currentTime) => {
+  const deltaTime = Math.min (0.017, (currentTime - gameTime.lastFrameTime) / 1000);
+  gameTime.lastFrameTime = currentTime;
+  gameTime.deltaSec = deltaTime;
+  return deltaTime
+}
+
 //structure & QOL
 
 const DOM = {
@@ -76,8 +89,8 @@ function createGameContainer() {
     const ui = document.createElement("div");
     ui.id = "ui";
 
-    game.append(entities);
-    DOM.app.append(game, ui);
+    game.append(entities, ui);
+    DOM.app.append(game);
 
     DOM.game = game;
     DOM.entities = entities;
@@ -144,6 +157,7 @@ function createPipe({topHeight, gap}) {
   DOM.pipeElements.push(pipeElements)
 } 
 
+ 
 function renderPipe() {}
 function updatePipeState() {}
 
@@ -163,9 +177,9 @@ function runGame() {
     createBird();
     renderBird(bird);
     createPipe(pipe);
+    
 };
 function restartGame() {}
-
 
 runGame();
 
