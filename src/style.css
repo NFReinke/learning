@@ -33,8 +33,15 @@ html, body{
   overflow:hidden;
 }
 
-.pipePair{ position:absolute; top:0; }
-.pipeTop,.pipeBottom{ position:absolute; width:100%; background:green; }
+.pipePair{ 
+  position:absolute; top:0; 
+}
+.pipeTop,.pipeBottom{ 
+  position:absolute; 
+  width:100%; 
+  background:green;
+ }
+
 #bird{
   position:absolute;
   background:#ffd166;
@@ -50,7 +57,8 @@ html, body{
   bottom:0;
   height:var(--ground-height);
   z-index:5;
-  background:repeating-linear-gradient(
+  background:
+  repeating-linear-gradient(
     to right,
     #7c5a3b 0 20px,
     #6c4e34 20px 40px);

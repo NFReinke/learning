@@ -2,12 +2,12 @@
 
 // Field
 
-const fieldWidth = 400; //größe vom echten hintergrund, später bild einfügen
-const fieldHeight = 708;
+const FIELD_WIDTH = 400; 
+const FIELD_HEIGHT = 708;
 const SAFE_MARGIN = 30;
 const GROUND_HEIGHT = 100;   
 
-const PLAYFIELD_HEIGHT = fieldHeight - GROUND_HEIGHT;
+const PLAYFIELD_HEIGHT = FIELD_HEIGHT - GROUND_HEIGHT;
 // Pipes
 
 const pipeConfig = {
@@ -18,15 +18,15 @@ const pipeConfig = {
   spawnInterval: 2.8,
 }
 
-let pipes =[];       // in top und bottom pipes aufteilen   
+let pipes =[];      
 
 // bird
 
 const birdBody = { width: 36, height: 30 };
-const birdStart = { x: fieldWidth / 6 , y: fieldHeight / 2  };
+const birdStart = { x: FIELD_WIDTH / 6 , y: FIELD_HEIGHT / 2  };
 
-const flap = -100; 
-let gravity = 100; //px/s^2
+const flap = -600; 
+const GRAVITY = 1600; //px/s^2
 
 //let velocity = 0, durch bird redundant ? wird vllt noch gebraucht
 
@@ -69,10 +69,10 @@ const getDeltaTime = (prevGameTime, currentTime) => {
 // -----------GAMECONTAINER---------
 // define div-structure
 function applyCssVars() {
-  DOM.game.style.setProperty('--field-width',  `${fieldWidth}px`);
-  DOM.game.style.setProperty('--field-height', `${fieldHeight}px`);
+  DOM.game.style.setProperty('--field-width',  `${FIELD_WIDTH}px`);
+  DOM.game.style.setProperty('--field-height', `${FIELD_HEIGHT}px`);
   DOM.game.style.setProperty('--ground-height', `${GROUND_HEIGHT}px`);
-  const groundPeriod = fieldWidth / pipeConfig.speed; // Sekunden
+  const groundPeriod = FIELD_WIDTH / pipeConfig.speed; // Sekunden
   DOM.game.style.setProperty('--ground-period', `${groundPeriod}s`);
 }
 
@@ -106,14 +106,33 @@ function createGround() {
 
 function renderGameContainer(){
   if (!DOM.game) return;
-  DOM.game.style.width  = fieldWidth + "px";
-  DOM.game.style.height = fieldHeight + "px"; 
+  DOM.game.style.width  = FIELD_WIDTH + "px";
+  DOM.game.style.height = FIELD_HEIGHT + "px"; 
 }
 
 
 function updateGameContainer() {}    
 
-function convertInputToAction() {}
+function convertInputToAction(birdState) {
+  if (input.flap) {
+    birdState = {...birdState, velocity: flap };
+    input.flap = false;
+  }
+  return birdState;
+}
+
+function setupInput() {
+  DOM.app.addEventListener("mousedown", () => {
+    input.flap = true;
+  })
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+      e.preventDefault();
+      input.flap = true;
+    }
+  });
+};
+
 
 // -----------BIRD---------
 // define Bird and create bird div
@@ -126,6 +145,7 @@ function createBird() {
 
     DOM.birdElement = birdElement;
 }
+
 function renderBird({x, y}) {
   if (!DOM.birdElement) return;
 
@@ -133,7 +153,13 @@ function renderBird({x, y}) {
   DOM.birdElement.style.height = bird.height + "px";
   DOM.birdElement.style.transform = `translate(${x- bird.width/2}px, ${y- bird.height/2}px)`;
 }
-function updateBirdState() {}
+
+const updateBirdState = ( {x, y, velocity}, deltaTime) => {
+  const newVelocity = velocity + GRAVITY * deltaTime;
+  const newY = y + newVelocity * deltaTime;
+  return {x, y: newY, velocity: newVelocity}
+};
+
 
 
 function createPipe({ topHeight, gap }) {
@@ -161,7 +187,7 @@ function createPipe({ topHeight, gap }) {
  
   pipes = [
     ...pipes,
-    { x: fieldWidth, width: pipeConfig.width, topHeight, gap, element: pipeElements }
+    { x: FIELD_WIDTH, width: pipeConfig.width, topHeight, gap, element: pipeElements }
   ];
 }
 
@@ -242,18 +268,24 @@ function updateUI() {}
 function renderUI() {}
 
 // ---------RULES----------
-const requestNextFrame = (prevGameTime) => {
-  requestAnimationFrame((nextGameTime) => gameLoop(nextGameTime, prevGameTime))
+const requestNextFrame = (prevGameTime, prevBird) => {
+  requestAnimationFrame((nextGameTime) => gameLoop(nextGameTime, prevGameTime, prevBird))
 }
 
-const gameLoop = (currentTime, prevGameTime) => {
+const gameLoop = (currentTime, prevGameTime, prevBird) => {
   const frameTime = getDeltaTime(prevGameTime, currentTime);
   const deltaTime = frameTime.deltaSec;
 
   let timeForNextFrame = frameTime;
+  let birdState = prevBird;
 
   if (phase === "running") {
     const { nextGameTime, spawnNow } = newPipeSpawnTimer(frameTime, deltaTime);
+
+    birdState = convertInputToAction(birdState);
+    birdState = updateBirdState(birdState, deltaTime);
+
+    renderBird(birdState);
 
     if (spawnNow) {
       const topHeight = randomTopHeight(pipeConfig.gap, SAFE_MARGIN);
@@ -264,10 +296,13 @@ const gameLoop = (currentTime, prevGameTime) => {
     pipes = removeInvisiblePipes(pipes);
     renderPipes();
 
+    
     timeForNextFrame = nextGameTime;
+
+    
   }
 
-  requestNextFrame(timeForNextFrame);
+  requestNextFrame(timeForNextFrame, birdState);
 };
 
 
@@ -277,16 +312,18 @@ function gameTick() {}
 function runGame() {
     phase = "running";
     createGameContainer();
+    setupInput();
     renderGameContainer();
     applyCssVars();
     createGround();
 
     createBird();
     renderBird(bird);
+    
 
     createPipe(pipeConfig);
     
-    requestNextFrame(initialGameTime); 
+    requestNextFrame(initialGameTime, bird); 
 
 };
 function restartGame() {}
