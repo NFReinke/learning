@@ -23,8 +23,10 @@ export const randomTopHeight = ({ pipeGap, minPipeHeight }) => {
     return topPipeHeight
 };
 
+
+
 export const limitValue = ({value, min, max}) =>{
     let limitedValue =Math.max(min, Math.min(max, value));
 
     return limitedValue
-}
+};
