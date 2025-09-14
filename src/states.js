@@ -1,2 +1,0 @@
-import { CONFIG } from "./config";
-

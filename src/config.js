@@ -16,5 +16,6 @@ export const CONFIG = {
     START: { x: 400/6, y: 708/2 },
     FLAP: -500,
     GRAVITY: 1800,
+    VELOCITY: 0,
   },
 };
