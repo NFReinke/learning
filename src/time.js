@@ -1,3 +1,3 @@
 export const now = () => performance.now();
 
-export const deltaSec = ({prevTime, currTime}) => Math.min((currTime - prevTime) / 1000, 0.05);
+export const deltaTime = ({prevTime, currTime}) => Math.min((currTime - prevTime) / 1000, 1 / 60);

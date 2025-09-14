@@ -12,10 +12,10 @@ export const CONFIG = {
     SPAWN_INTERVAL: 1.8,
   },
   BIRD: {
-    BODY: { WIDTH: 36, HEIGHT: 30 },
+    BODY: { width: 36, height: 30 },
     START: { x: 400/6, y: 708/2 },
     FLAP: -500,
     GRAVITY: 1800,
-    VELOCITY: 0,
+    VELOCITY:  {y: 0}
   },
 };
