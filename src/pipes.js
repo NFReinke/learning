@@ -1,5 +1,4 @@
 export const createPipePair = ({
-    id,
     x,
     width,
     topHeight,
@@ -8,7 +7,6 @@ export const createPipePair = ({
     passed = false,
     }) => {
     let newPipe = {
-        id,
         x,
         width,
         topHeight,
