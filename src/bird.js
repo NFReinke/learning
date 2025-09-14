@@ -9,17 +9,23 @@ export const createBird = ({ CONFIG }) => {
   return newBird;
 };
 
+
+
 export const setBirdVelocityY = ({ bird, velocityY }) => {
     let newBirdSpeed = { ...bird, velocityY };
 
     return newBirdSpeed
 };
 
-export const setBirdPositionY = ({ bird, y }) => {
+
+
+export const setBirdY = ({ bird, y }) => {
     let nextBirdPositionY = { ...bird, y };
 
     return nextBirdPositionY;
 };
+
+
 
 export const limitBirdY = ({ bird, topLimit, bottomLimit }) => {
     const limitedY = Math.max(topLimit, Math.min(bird.y, bottomLimit));
@@ -30,12 +36,14 @@ export const limitBirdY = ({ bird, topLimit, bottomLimit }) => {
     return limitedBird
 };
 
+
+
 export const getBirdStyle = ({ bird }) => {
-  let BirdCSS = {
+  let birdCSS = {
     left: `${bird.x}px`,
     top: `${bird.y}px`,
     width: `${bird.width}px`,
     height: `${bird.height}px`,
   };
-  return BirdCSS;
+  return birdCSS;
 };
