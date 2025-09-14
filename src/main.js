@@ -1,5 +1,5 @@
 // import "./styles.css";
-
+import { CONFIG } from "./config.js";
 // Field
 
 const FIELD_WIDTH = 400; 
