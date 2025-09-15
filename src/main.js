@@ -64,7 +64,10 @@ const advancePipeSpawnTimer = ({ pipeSpawnTimer, deltaTime }) => {
   return { spawnPipeNow, nextPipeSpawnTimer }
 }
 
-
+const setGroundPeriodFromSpeed = () => {
+  const groundPeriodSec = CONFIG.FIELD.WIDTH / CONFIG.PIPES.SPEED; // s
+  document.documentElement.style.setProperty("--ground-period", `${groundPeriodSec}s`);
+};
 
 // start gamestate
 
@@ -193,5 +196,5 @@ const gameLoop = () => {
   state = newState;
   requestAnimationFrame(gameLoop);
 };
-
+setGroundPeriodFromSpeed();
 requestAnimationFrame(gameLoop);

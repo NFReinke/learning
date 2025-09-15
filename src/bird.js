@@ -40,8 +40,7 @@ export const limitBirdY = ({ bird, topLimit, bottomLimit }) => {
 
 export const getBirdStyle = ({ bird }) => {
   let birdCSS = {
-    left: `${bird.x}px`,
-    top: `${bird.y}px`,
+    transform: `translate(${bird.x}px, ${bird.y}px)`,
     width: `${bird.width}px`,
     height: `${bird.height}px`,
   };

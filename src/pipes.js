@@ -28,14 +28,15 @@ export const setPipePassed = ({ pipe, passed }) => {
 };
 
 export const getPipeHTML = ({ pipe, fieldAirHeight }) => {
-  let html = `
-    <div class="pipePair" style="left:${pipe.x}px; width:${pipe.width}px; height:${fieldAirHeight}px;">
+  let pipeHTML = `
+    <div class="pipePair" style="transform: translateX(${pipe.x}px); width:${pipe.width}px; height:${fieldAirHeight}px;">
       <div class="pipeTop" style="top:0; height:${pipe.topHeight}px;"></div>
       <div class="pipeBottom" style="top:${pipe.bottomStartY}px; height:${pipe.bottomHeight}px;"></div>
     </div>
   `;
-  return html;
+  return pipeHTML;
 };
+
 
 export const getAllPipesHTML = ({ pipes, fieldAirHeight }) => {
     let pipeHTMLArray = pipes.map(pipe => getPipeHTML({ pipe, fieldAirHeight }));
