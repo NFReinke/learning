@@ -19,4 +19,4 @@ export const CONFIG = {
     MAX_HEIGHT: -180, 
     FLAP_COOLDOWN: 0.2,
   },
-};
+}; 
