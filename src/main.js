@@ -155,7 +155,7 @@ const getGameoverPhase = ({ state, input, now }) => {
     const fresh = getGameState();
     const bird = applyFlap({ bird: fresh.bird, flapVelocity: birdConfig.flapVelocity });
     const time = { ...fresh.time, nextAllowedFlapAt: now + birdConfig.flapCooldown, now };
-    return { ...fresh, phase: "running", bird, time };
+    return { ...fresh, phase: "start", bird, time };
   }
   return { ...state, time: { ...state.time, now } };
 };
