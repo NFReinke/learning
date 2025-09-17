@@ -22,9 +22,3 @@ export const limitBirdY = ({ bird, topLimit, bottomLimit }) => {
 
    return { ...bird, y: limitedY, velocityY };
 };
-
-export const getBirdStyle = ({ bird }) => ({
-  transform: `translate3d(${Math.round(bird.x)}px, ${Math.round(bird.y)}px, 0)`,
-  width: `${bird.width}px`,
-  height: `${bird.height}px`,
-});
