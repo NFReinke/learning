@@ -1,76 +1,102 @@
-:root{
+:root {
   --field-width: 400px;            
   --field-height: 708px;           
   --ground-height: 100px;       
-  --ceiling-margin: 0px;        
   --ground-period: 3s;            
 }
 
-html, body{
-  height:100%;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:#0b1220;
-  margin:0;
+html, body {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #0b1220;
+  margin: 0;
 }
 
-#game{
-  position:relative;
-  width:var(--field-width);
-  height:var(--field-height);
-  background:#3aa7ff;
-  border-radius:10px;
-  overflow:hidden;
+#game {
+  position: relative;
+  width: var(--field-width);
+  height: var(--field-height);
+  background: #3aa7ff;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-#entities{
-  position:absolute;
-  left:0;
+#entities {
+  position: absolute;
+  left: 0;
   right: 0;
   top: 0;  
   height: var(--field-height);
-  overflow:hidden;
+  overflow: hidden;
 }
 
 #bird, .pipePair {
   will-change: transform;
 }
 
-.pipePair{ 
-  position:absolute; top:0; 
-}
-.pipeTop,.pipeBottom{ 
-  position:absolute; 
-  width:100%; 
-  background:green;
- }
-
-#bird{
-  position:absolute;
-  background:#ffd166;
-  border:2px solid #343635;
-  border-radius:14px;
+.pipePair { 
+  position: absolute; 
+  top: 0; 
 }
 
+.pipeTop,
+.pipeBottom { 
+  position: absolute; 
+  width: 100%; 
+  background: green;
+}
 
-#ground{
-  position:absolute;
-  left:0; 
-  right:0; 
-  bottom:0;
-  height:var(--ground-height);
-  z-index:5;
+#bird {
+  position: absolute;
+  background: #ffd166;
+  border: 2px solid #343635;
+  border-radius: 14px;
+}
+
+#ground {
+  position: absolute;
+  left: 0; 
+  right: 0; 
+  bottom: 0;
+  height: var(--ground-height);
+  z-index: 5;
   background:
-  repeating-linear-gradient(
-    to right,
-    #7c5a3b 0 20px,
-    #6c4e34 20px 40px);
-  background-position-x:0px;
-  animation:ground-scroll var(--ground-period) linear infinite;
+    repeating-linear-gradient(
+      to right,
+      #7c5a3b 0 20px,
+      #6c4e34 20px 40px
+    );
+  background-position-x: 0px;
+  animation: ground-scroll var(--ground-period) linear infinite;
+}
+
+@keyframes ground-scroll {
+  to { background-position-x: calc(-1 * var(--field-width)); }
 }
 
 
-@keyframes ground-scroll{
-  to{ background-position-x: calc(-1 * var(--field-width)); }
+#score {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: system-ui, sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0,0,0,.25);
+  z-index: 10;
+  pointer-events: none;
+  user-select: none;
+}
+
+
+#overlay {
+  position:absolute; inset:0;
+  display:none; justify-content:center; align-items:center;
+  font:600 24px system-ui,sans-serif; color:#fff;
+  background:rgba(0,0,0,.35); z-index:20;
+  user-select:none; pointer-events:none;
 }

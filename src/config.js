@@ -16,6 +16,6 @@ export const CONFIG = {
     FLAP: -500,
     GRAVITY: 1800,
     MAX_LIMIT_OFFSET: -180, 
-    FLAP_COOLDOWN: 0.2,
+    FLAP_COOLDOWN: 0.1,
   },
 }; 

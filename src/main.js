@@ -6,6 +6,7 @@ const fieldWidth = CONFIG.FIELD.WIDTH;
 const fieldHeight = CONFIG.FIELD.HEIGHT;
 const groundHeight = CONFIG.FIELD.GROUND_HEIGHT;
 const playfieldHeight = fieldHeight - groundHeight;
+const topOffset = CONFIG.BIRD.MAX_LIMIT_OFFSET;
 
 const birdConfig = {
   body: { width: CONFIG.BIRD.BODY.WIDTH, height: CONFIG.BIRD.BODY.HEIGHT },
@@ -33,13 +34,13 @@ export const hitboxesOverlap = ({ hitboxBird, hitboxPipe }) => {
 };
 
 const pipePairToHitboxes = ({ pipe }) => {
-  const topHitbox = { x: pipe.x, y: 0, width: pipe.width, height: pipe.topHeight };
+  const topHitbox = { x: pipe.x, y: topOffset, width: pipe.width, height: pipe.topHeight - topOffset};
   const bottomHitbox = { x: pipe.x, y: pipe.bottomStartY, width: pipe.width, height: pipe.bottomHeight };
 
   return [topHitbox, bottomHitbox];
 };
 
-export const initGameState = () => {
+export const getGameState = () => {
   const startX = Math.round(fieldWidth / 6);
   const startY = Math.round(fieldHeight / 2);
   const bird = createBird({ start: { x: startX, y: startY }, size: birdConfig.body });
@@ -130,25 +131,32 @@ const getStartPhase = ({ state, input, now }) => {
 const getRunningPhase = ({ state, input, deltaSeconds, now, rng = Math.random }) => {
   let { time, bird, pipes, score } = state;
 
-  const birdUpdate = updateBird({ bird, input, now, time, deltaSeconds });
-  bird = birdUpdate.bird;
-  time = birdUpdate.time;
+  const birdResult = updateBird({ bird, input, now, time, deltaSeconds });
+  bird = birdResult.bird;
+  time = birdResult.time;
 
-  const motion = updatePipesMotion({ pipes, time, now, deltaSeconds, rng });
-  const evalRes = checkPipes({ pipes: motion.pipes, bird });
-
-  pipes = evalRes.pipes;
-  time = motion.time;
-  score += evalRes.scoreDelta;
-
-  const phase = evalRes.collided ? "gameover" : "running";
+  const pipesMotion = updatePipesMotion({ pipes, time, now, deltaSeconds, rng });
+  const pipesEvaluation = checkPipes({ pipes: pipesMotion.pipes, bird });
   
+  pipes = pipesEvaluation.pipes;
+  time = pipesMotion.time;
+  score += pipesEvaluation.scoreDelta;
+
+  let phase = pipesEvaluation.collided ? "gameover" : "running";
+  if (bird.y >= playfieldHeight - bird.height) {
+    phase = "gameover";
+  }
+
   return { phase, time: { ...time, now }, bird, pipes, score };
 };
 
 const getGameoverPhase = ({ state, input, now }) => {
-  if (input && input.flapPressed) return initGameState();
-
+  if (input && input.flapPressed) {
+    const fresh = getGameState();
+    const bird = applyFlap({ bird: fresh.bird, flapVelocity: birdConfig.flapVelocity });
+    const time = { ...fresh.time, nextAllowedFlapAt: now + birdConfig.flapCooldown, now };
+    return { ...fresh, phase: "running", bird, time };
+  }
   return { ...state, time: { ...state.time, now } };
 };
 
