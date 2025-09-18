@@ -1,200 +1,168 @@
 import { CONFIG } from "./config.js";
-import { createField } from "./field.js";
-import { now, deltaTime } from "./time.js";
-import { createBird, setBirdVelocityY, setBirdY, limitBirdY, getBirdStyle } from "./bird.js";
-import { createPipePair, setPipeX, setPipePassed, getAllPipesHTML } from "./pipes.js";
+import { createBird, applyGravityAndMove, applyFlap, limitBirdY } from "./bird.js";
+import { createPipePairForSpawn, movePipes, removeOffscreenPipes, shouldSpawn } from "./pipes.js";
 
-// DOM
+const fieldWidth = CONFIG.FIELD.WIDTH;
+const fieldHeight = CONFIG.FIELD.HEIGHT;
+const groundHeight = CONFIG.FIELD.GROUND_HEIGHT;
+const playfieldHeight = fieldHeight - groundHeight;
+const topOffset = CONFIG.BIRD.MAX_LIMIT_OFFSET;
 
-const $app = document.getElementById("app");
-
-const $game = document.createElement("div");
-$game.id = "game";
-
-const $entities = document.createElement("div");
-$entities.id = "entities";
-
-const $bird = document.createElement("div");
-$bird.id = "bird";
-
-const $ground = document.createElement("div");
-$ground.id = "ground";
-
-$game.append($entities, $bird, $ground);
-$app.append($game);
-
-// new const
-const fieldAirHeight = CONFIG.FIELD.HEIGHT - CONFIG.FIELD.GROUND_HEIGHT;
-let lastFlapTime = 0;
-
-
-// assisting functions
-
-const randomTopHeight = () => {
-  const gap = CONFIG.PIPES.GAP;
-  const fieldHeight = fieldAirHeight
-  const minTopHeight = CONFIG.PIPES.MIN_HEIGHT;
-  const maxTopHeight = Math.max(minTopHeight, fieldHeight - gap);
-
-  return Math.floor(minTopHeight + Math.random() * (maxTopHeight - minTopHeight));
-}
-
-
-
-const movePipes = ({ pipes, speed, deltaTime }) => {
-  let moved = pipes.map(pipe => setPipeX({ pipe, x: pipe.x - speed * deltaTime }));
-  return moved;
+const birdConfig = {
+  body: { width: CONFIG.BIRD.BODY.WIDTH, height: CONFIG.BIRD.BODY.HEIGHT },
+  flapVelocity: CONFIG.BIRD.FLAP,
+  gravity: CONFIG.BIRD.GRAVITY,
+  flapCooldown: CONFIG.BIRD.FLAP_COOLDOWN,
+  maxLimitOffset: CONFIG.BIRD.MAX_LIMIT_OFFSET,
 };
 
-
-
-const getVisiblePipes = ({ pipes }) => {
-  let visible = pipes.filter(pipe => pipe.x + pipe.width > 0);
-  return visible;
+const pipeConfig = {
+  width: CONFIG.PIPES.WIDTH,
+  gap: CONFIG.PIPES.GAP,
+  speed: CONFIG.PIPES.SPEED,
+  spawnInterval: CONFIG.PIPES.SPAWN_INTERVAL,
+  minHeight: CONFIG.PIPES.MIN_HEIGHT,
 };
 
-
-
-const advancePipeSpawnTimer = ({ pipeSpawnTimer, deltaTime }) => {
-  const timePassed = pipeSpawnTimer + deltaTime;
-  const interval = CONFIG.PIPES.SPAWN_INTERVAL;
-  const spawnPipeNow = timePassed >= interval;
-  const nextPipeSpawnTimer = spawnPipeNow ? timePassed - interval : timePassed;
-
-  return { spawnPipeNow, nextPipeSpawnTimer }
-}
-
-const setGroundPeriodFromSpeed = () => {
-  const groundPeriodSec = CONFIG.FIELD.WIDTH / CONFIG.PIPES.SPEED; // s
-  document.documentElement.style.setProperty("--ground-period", `${groundPeriodSec}s`);
+export const hitboxesOverlap = ({ hitboxBird, hitboxPipe }) => {
+  return !(
+    hitboxBird.x + hitboxBird.width  <= hitboxPipe.x ||
+    hitboxPipe.x  + hitboxPipe.width <= hitboxBird.x ||
+    hitboxBird.y + hitboxBird.height <= hitboxPipe.y ||
+    hitboxPipe.y  + hitboxPipe.height <= hitboxBird.y
+  );
 };
 
-// start gamestate
+const pipePairToHitboxes = ({ pipe }) => {
+  const topHitbox = { x: pipe.x, y: topOffset, width: pipe.width, height: pipe.topHeight - topOffset};
+  const bottomHitbox = { x: pipe.x, y: pipe.bottomStartY, width: pipe.width, height: pipe.bottomHeight };
 
-let state = {
-  field: createField({ CONFIG }),
-  bird: createBird({ CONFIG }),
-  pipes: [],
-  score: 0, 
-  time: { prevTime: now(), pipeSpawnTimer: 0 }
-}
-
-
-// Input / Flapping
-const onFlap = (e) => {
-  const time = now() / 1000;
-
-  if ( time - lastFlapTime < CONFIG.BIRD.FLAP_COOLDOWN ) return;
-
-  lastFlapTime = time;
-
-  if (e && e.code ==="Space") e.preventDefault();
-   
-  state = { ...state, bird: setBirdVelocityY({ bird: state.bird, velocityY: CONFIG.BIRD.FLAP }),}
+  return [topHitbox, bottomHitbox];
 };
 
-window.addEventListener("keydown", (e) => e.code === "Space" && onFlap(e));
-window.addEventListener("mousedown", onFlap);
-
-
-
-// Bird
-const nextBirdState = ({ bird, deltaTime }) => {
-  const { y, velocityY, height: birdHeight } = bird;
-  const { GRAVITY, MAX_HEIGHT } = CONFIG.BIRD;
-  const fieldHeight = CONFIG.FIELD.HEIGHT;
-  const groundHeight = CONFIG.FIELD.GROUND_HEIGHT;
-
-  const newVelocityY = velocityY + GRAVITY * deltaTime;
-  const newY = y + newVelocityY * deltaTime;
-
-  let updatedBird = setBirdVelocityY({ bird, velocityY: newVelocityY });
-  updatedBird = setBirdY({ bird: updatedBird, y: newY });
-
-  const topLimit = MAX_HEIGHT 
-  const bottomLimit = fieldHeight - groundHeight - birdHeight; // height könnte missverständnisse machen
-
-  return limitBirdY({ bird: updatedBird, topLimit, bottomLimit });
-};
-
-
-// Pipes
-const nextPipeState = ({pipes, deltaTime, pipeSpawnTimer}) => {
-  const { SPEED, WIDTH, GAP, MIN_HEIGHT } = CONFIG.PIPES;
-  const fieldHeight = CONFIG.FIELD.HEIGHT;
-  const groundHeight = CONFIG.FIELD.GROUND_HEIGHT;
-  const fieldAirHeight = fieldHeight - groundHeight;
-
-  const movedPipes = movePipes({ pipes, speed: SPEED, deltaTime });
-  const visiblePipes = getVisiblePipes({ pipes: movedPipes });
-
-  const { spawnPipeNow, nextPipeSpawnTimer } = advancePipeSpawnTimer({ pipeSpawnTimer, deltaTime });
-
-  let nextPipes = visiblePipes;
-  
-  if (spawnPipeNow) {
-    const topPipeHeight = randomTopHeight();
-    const bottomStartY = topPipeHeight + GAP;
-    const bottomHeight = Math.max(MIN_HEIGHT, fieldAirHeight - bottomStartY);
-  
-
-  const newPipe = createPipePair ({
-    x: CONFIG.FIELD.WIDTH, 
-    width: WIDTH,
-    topHeight: topPipeHeight,
-    bottomStartY,
-    bottomHeight,
-    passed: false,
-  });
-  
-  nextPipes = [ ...visiblePipes, newPipe];
-};
-
-return { nextPipes, nextPipeSpawnTimer}
-};
-
-
-
-const nextState = ({ state, currTime }) => {
-  const deltaTimeInSec = deltaTime({ prevTime: state.time.prevTime, currTime });
-
-  const updatedBird = nextBirdState({ bird: state.bird, deltaTime: deltaTimeInSec });
-  const { nextPipes, nextPipeSpawnTimer } =
-    nextPipeState({
-      pipes: state.pipes,
-      deltaTime: deltaTimeInSec,
-      pipeSpawnTimer: state.time.pipeSpawnTimer
-    });
+export const getGameState = () => {
+  const startX = Math.round(fieldWidth / 6);
+  const startY = Math.round(fieldHeight / 2);
+  const bird = createBird({ start: { x: startX, y: startY }, size: birdConfig.body });
 
   return {
-    ...state,
-    bird: updatedBird,
-    pipes: nextPipes,
-    time: { prevTime: currTime, pipeSpawnTimer: nextPipeSpawnTimer },
+    phase: "start",
+    time: { now: 0, lastSpawnAt: 0, nextAllowedFlapAt: 0 },
+    bird,
+    pipes: [],
+    score: 0,
   };
 };
 
+const updateBird = ({ bird, input, now, time, deltaSeconds }) => {
+  let nextBird = bird;
+  let nextTime = time;
 
-const computeView = ({ state }) => {
-  const birdCSS = getBirdStyle({ bird: state.bird });
-  const pipesHTML = getAllPipesHTML({ pipes: state.pipes, fieldAirHeight });
-  return { birdCSS, pipesHTML };
+  if (input && input.flapPressed && now >= time.nextAllowedFlapAt) {
+    nextBird = applyFlap({ bird: nextBird, flapVelocity: birdConfig.flapVelocity });
+    nextTime = { ...nextTime, nextAllowedFlapAt: now + birdConfig.flapCooldown };
+  }
+
+  nextBird = applyGravityAndMove({ bird: nextBird, gravity: birdConfig.gravity, deltaSeconds });
+
+  const topLimit = birdConfig.maxLimitOffset;
+  const bottomLimit = playfieldHeight - nextBird.height;
+  nextBird = limitBirdY({ bird: nextBird, topLimit, bottomLimit });
+
+  return { bird: nextBird, time: nextTime };
 };
 
+const updatePipesMotion = ({ pipes, time, now, deltaSeconds, rng = Math.random }) => {
+  let nextPipes = movePipes({ pipes, speed: pipeConfig.speed, deltaSeconds });
+  nextPipes = removeOffscreenPipes({ pipes: nextPipes });
 
-const applyView = ({ view }) => {
-  Object.assign($bird.style, view.birdCSS);
-  $entities.innerHTML = view.pipesHTML;
+  let nextTime = time;
+  if (shouldSpawn({ now, lastSpawnAt: time.lastSpawnAt, interval: pipeConfig.spawnInterval })) {
+    const newPipe = createPipePairForSpawn({
+      xAtSpawn: fieldWidth,
+      width: pipeConfig.width,
+      gap: pipeConfig.gap,
+      playfieldHeight,
+      minPipeHeight: pipeConfig.minHeight,
+      rng,
+    });
+    nextPipes = [...nextPipes, newPipe];
+    nextTime = { ...nextTime, lastSpawnAt: now };
+  }
+
+  return { pipes: nextPipes, time: nextTime };
 };
 
+const checkPipes = ({ pipes, bird }) => {
+  let scoreDelta = 0;
+  let collided = false;
 
-const gameLoop = () => {
-  const currentTime = now();
-  const newState = nextState({ state, currTime: currentTime });
-  const view = computeView({ state: newState });
-  applyView({ view });
-  state = newState;
-  requestAnimationFrame(gameLoop);
+  const nextPipes = pipes.map((pipe) => {
+    const [topHitbox, bottomHitbox] = pipePairToHitboxes({ pipe });
+
+    if (
+      hitboxesOverlap({ hitboxBird: bird, hitboxPipe: topHitbox }) ||
+      hitboxesOverlap({ hitboxBird: bird, hitboxPipe: bottomHitbox })
+    ) {
+      collided = true;
+    }
+
+    const hasPassed = bird.x > (pipe.x + pipe.width);
+    if (!pipe.passed && hasPassed) {
+      scoreDelta += 1;
+      return { ...pipe, passed: true };
+    }
+    return pipe;
+  });
+
+  return { pipes: nextPipes, scoreDelta, collided };
 };
-setGroundPeriodFromSpeed();
-requestAnimationFrame(gameLoop);
+
+const getStartPhase = ({ state, input, now }) => {
+  let { bird, time } = state;
+  if (input && input.flapPressed) {
+    bird = applyFlap({ bird, flapVelocity: birdConfig.flapVelocity });
+    time = { ...time, nextAllowedFlapAt: now + birdConfig.flapCooldown };
+    return { ...state, phase: "running", bird, time: { ...time, now } };
+  }
+  return { ...state, time: { ...state.time, now } };
+};
+
+const getRunningPhase = ({ state, input, deltaSeconds, now, rng = Math.random }) => {
+  let { time, bird, pipes, score } = state;
+
+  const birdResult = updateBird({ bird, input, now, time, deltaSeconds });
+  bird = birdResult.bird;
+  time = birdResult.time;
+
+  const pipesMotion = updatePipesMotion({ pipes, time, now, deltaSeconds, rng });
+  const pipesEvaluation = checkPipes({ pipes: pipesMotion.pipes, bird });
+  
+  pipes = pipesEvaluation.pipes;
+  time = pipesMotion.time;
+  score += pipesEvaluation.scoreDelta;
+
+  let phase = pipesEvaluation.collided ? "gameover" : "running";
+  if (bird.y >= playfieldHeight - bird.height) {
+    phase = "gameover";
+  }
+
+  return { phase, time: { ...time, now }, bird, pipes, score };
+};
+
+const getGameoverPhase = ({ state, input, now }) => {
+  if (input && input.flapPressed) {
+    const fresh = getGameState();
+    const bird = applyFlap({ bird: fresh.bird, flapVelocity: birdConfig.flapVelocity });
+    const time = { ...fresh.time, nextAllowedFlapAt: now + birdConfig.flapCooldown, now };
+    return { ...fresh, phase: "start", bird, time };
+  }
+  return { ...state, time: { ...state.time, now } };
+};
+
+export const updateGameState = ({ state, input, deltaSeconds, now, rng = Math.random }) => {
+  if (state.phase === "start")   return getStartPhase({ state, input, now });
+  if (state.phase === "running") return getRunningPhase({ state, input, deltaSeconds, now, rng });
+  if (state.phase === "gameover")return getGameoverPhase({ state, input, now });
+  return state;
+};

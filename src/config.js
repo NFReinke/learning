@@ -12,12 +12,10 @@ export const CONFIG = {
     MIN_HEIGHT: 30, 
   },
   BIRD: {
-    BODY: { width: 36, height: 30 },
-    START: { x: 400 / 6, y: 708 / 2 },
+    BODY: { WIDTH: 36, HEIGHT: 30 },
     FLAP: -500,
     GRAVITY: 1800,
-    VELOCITY: { y: 0 },
-    MAX_HEIGHT: -180, 
-    FLAP_COOLDOWN: 0.2,
+    MAX_LIMIT_OFFSET: -180, 
+    FLAP_COOLDOWN: 0.1,
   },
-};
+}; 
